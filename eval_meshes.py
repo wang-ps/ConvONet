@@ -14,6 +14,10 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('config', type=str, help='Path to config file.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
+parser.add_argument('--generation_dir', type=str, default='',
+                    help='The directory of generated meshes.')
+parser.add_argument('--suffix', type=str, default='off',
+                    help='The suffix of generated meshes.')
 parser.add_argument('--eval_input', action='store_true',
                     help='Evaluate inputs instead.')
 
@@ -24,7 +28,11 @@ device = torch.device("cuda" if is_cuda else "cpu")
 
 # Shorthands
 out_dir = cfg['training']['out_dir']
-generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
+if not args.generation_dir:
+    generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
+else:
+    generation_dir = args.generation_dir
+
 if not args.eval_input:
     out_file = os.path.join(generation_dir, 'eval_meshes_full.pkl')
     out_file_class = os.path.join(generation_dir, 'eval_meshes.csv')
@@ -122,7 +130,7 @@ for it, data in enumerate(tqdm(test_loader)):
 
     # Evaluate mesh
     if cfg['test']['eval_mesh']:
-        mesh_file = os.path.join(mesh_dir, '%s.off' % modelname)
+        mesh_file = os.path.join(mesh_dir, '%s.%s' % (modelname, args.suffix))
 
         if os.path.exists(mesh_file):
             try:
