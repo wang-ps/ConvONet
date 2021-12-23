@@ -34,10 +34,10 @@ else:
     generation_dir = args.generation_dir
 
 if not args.eval_input:
-    out_file = os.path.join(generation_dir, 'eval_meshes_full.pkl')
+    out_file = os.path.join(generation_dir, 'eval_meshes_full.csv')
     out_file_class = os.path.join(generation_dir, 'eval_meshes.csv')
 else:
-    out_file = os.path.join(generation_dir, 'eval_input_full.pkl')
+    out_file = os.path.join(generation_dir, 'eval_input_full.csv')
     out_file_class = os.path.join(generation_dir, 'eval_input.csv')
 
 # Dataset
@@ -162,7 +162,7 @@ for it, data in enumerate(tqdm(test_loader)):
 # Create pandas dataframe and save
 eval_df = pd.DataFrame(eval_dicts)
 eval_df.set_index(['idx'], inplace=True)
-eval_df.to_pickle(out_file)
+eval_df.to_csv(out_file)
 
 # Create CSV file  with main statistics
 eval_df_class = eval_df.groupby(by=['class name']).mean()
