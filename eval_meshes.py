@@ -13,32 +13,21 @@ parser = argparse.ArgumentParser(
     description='Evaluate mesh algorithms.'
 )
 parser.add_argument('config', type=str, help='Path to config file.')
-parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('--generation_dir', type=str, default='',
                     help='The directory of generated meshes.')
-parser.add_argument('--suffix', type=str, default='off',
+parser.add_argument('--dataset_folder', type=str, default='',
+                    help='The directory of dataset.')
+parser.add_argument('--suffix', type=str, default='obj',
                     help='The suffix of generated meshes.')
-parser.add_argument('--eval_input', action='store_true',
-                    help='Evaluate inputs instead.')
+
 
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
-is_cuda = (torch.cuda.is_available() and not args.no_cuda)
-device = torch.device("cuda" if is_cuda else "cpu")
 
-# Shorthands
-out_dir = cfg['training']['out_dir']
-if not args.generation_dir:
-    generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
-else:
-    generation_dir = args.generation_dir
-
-if not args.eval_input:
-    out_file = os.path.join(generation_dir, 'eval_meshes_full.csv')
-    out_file_class = os.path.join(generation_dir, 'eval_meshes.csv')
-else:
-    out_file = os.path.join(generation_dir, 'eval_input_full.csv')
-    out_file_class = os.path.join(generation_dir, 'eval_input.csv')
+generation_dir = args.generation_dir
+dataset_folder = args.dataset_folder
+out_file = os.path.join(generation_dir, 'eval_meshes_full.csv')
+out_file_class = os.path.join(generation_dir, 'eval_meshes.csv')
 
 # Dataset
 points_field = data.PointsField(
@@ -58,7 +47,7 @@ fields = {
 
 print('Test split: ', cfg['data']['test_split'])
 
-dataset_folder = cfg['data']['path']
+# dataset_folder = cfg['data']['path']
 dataset = data.Shapes3dDataset(
     dataset_folder, fields,
     cfg['data']['test_split'],
@@ -76,20 +65,13 @@ test_loader = torch.utils.data.DataLoader(
 # Evaluate all classes
 eval_dicts = []
 print('Evaluating meshes...')
-for it, data in enumerate(tqdm(test_loader)):
+for it, data in enumerate(tqdm(test_loader, ncols=80)):
     if data is None:
         print('Invalid data.')
         continue
 
-    # Output folders
-    if not args.eval_input:
-        mesh_dir = os.path.join(generation_dir, 'meshes')
-        pointcloud_dir = os.path.join(generation_dir, 'pointcloud')
-    else:
-        mesh_dir = os.path.join(generation_dir, 'input')
-        pointcloud_dir = os.path.join(generation_dir, 'input')
-
-    # Get index etc.
+    mesh_dir = generation_dir
+    pointcloud_dir = os.path.join(generation_dir, 'pointcloud')
     idx = data['idx'].item()
 
     try:
