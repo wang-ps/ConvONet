@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_scatter import scatter_mean
+# from torch_scatter import scatter_mean
 from src.encoder.unet import UNet
 from src.encoder.unet3d import UNet3D
 from src.common import coordinate2index, normalize_coordinate, normalize_3d_coordinate
@@ -19,14 +19,14 @@ class LocalVoxelEncoder(nn.Module):
         unet3d (bool): weather to use 3D U-Net
         unet3d_kwargs (str): 3D U-Net parameters
         plane_resolution (int): defined resolution for plane feature
-        grid_resolution (int): defined resolution for grid feature 
+        grid_resolution (int): defined resolution for grid feature
         plane_type (str): 'xz' - 1-plane, ['xz', 'xy', 'yz'] - 3-plane, ['grid'] - 3D grid volume
         kernel_size (int): kernel size for the first layer of CNN
         padding (float): conventional padding paramter of ONet for unit cube, so [-0.5, 0.5] -> [-0.55, 0.55]
-    
+
     '''
 
-    def __init__(self, dim=3, c_dim=128, unet=False, unet_kwargs=None, unet3d=False, unet3d_kwargs=None, 
+    def __init__(self, dim=3, c_dim=128, unet=False, unet_kwargs=None, unet3d=False, unet3d_kwargs=None,
                  plane_resolution=512, grid_resolution=None, plane_type='xz', kernel_size=3, padding=0.1):
         super().__init__()
         self.actvn = F.relu

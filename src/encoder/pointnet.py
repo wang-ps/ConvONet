@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.layers import ResnetBlockFC
-from torch_scatter import scatter_mean, scatter_max
+# from torch_scatter import scatter_mean, scatter_max
 from src.common import coordinate2index, normalize_coordinate, normalize_3d_coordinate, map2local
 from src.encoder.unet import UNet
 from src.encoder.unet3d import UNet3D
@@ -11,7 +11,7 @@ from src.encoder.unet3d import UNet3D
 class LocalPoolPointnet(nn.Module):
     ''' PointNet-based encoder network with ResNet blocks for each point.
         Number of input points are fixed.
-    
+
     Args:
         c_dim (int): dimension of latent code c
         dim (int): input points dimension
@@ -22,14 +22,14 @@ class LocalPoolPointnet(nn.Module):
         unet3d (bool): weather to use 3D U-Net
         unet3d_kwargs (str): 3D U-Net parameters
         plane_resolution (int): defined resolution for plane feature
-        grid_resolution (int): defined resolution for grid feature 
+        grid_resolution (int): defined resolution for grid feature
         plane_type (str): feature type, 'xz' - 1-plane, ['xz', 'xy', 'yz'] - 3-plane, ['grid'] - 3D grid volume
         padding (float): conventional padding paramter of ONet for unit cube, so [-0.5, 0.5] -> [-0.55, 0.55]
         n_blocks (int): number of blocks ResNetBlockFC layers
     '''
 
-    def __init__(self, c_dim=128, dim=3, hidden_dim=128, scatter_type='max', 
-                 unet=False, unet_kwargs=None, unet3d=False, unet3d_kwargs=None, 
+    def __init__(self, c_dim=128, dim=3, hidden_dim=128, scatter_type='max',
+                 unet=False, unet_kwargs=None, unet3d=False, unet3d_kwargs=None,
                  plane_resolution=None, grid_resolution=None, plane_type='xz', padding=0.1, n_blocks=5):
         super().__init__()
         self.c_dim = c_dim
@@ -134,7 +134,7 @@ class LocalPoolPointnet(nn.Module):
         if 'grid' in self.plane_type:
             coord['grid'] = normalize_3d_coordinate(p.clone(), padding=self.padding)
             index['grid'] = coordinate2index(coord['grid'], self.reso_grid, coord_type='3d')
-        
+
         net = self.fc_pos(p)
 
         net = self.blocks[0](net)
@@ -161,7 +161,7 @@ class PatchLocalPoolPointnet(nn.Module):
     ''' PointNet-based encoder network with ResNet blocks.
         First transform input points to local system based on the given voxel size.
         Support non-fixed number of point cloud, but need to precompute the index
-    
+
     Args:
         c_dim (int): dimension of latent code c
         dim (int): input points dimension
@@ -172,7 +172,7 @@ class PatchLocalPoolPointnet(nn.Module):
         unet3d (bool): weather to use 3D U-Net
         unet3d_kwargs (str): 3D U-Net parameters
         plane_resolution (int): defined resolution for plane feature
-        grid_resolution (int): defined resolution for grid feature 
+        grid_resolution (int): defined resolution for grid feature
         plane_type (str): feature type, 'xz' - 1-plane, ['xz', 'xy', 'yz'] - 3-plane, ['grid'] - 3D grid volume
         padding (float): conventional padding paramter of ONet for unit cube, so [-0.5, 0.5] -> [-0.55, 0.55]
         n_blocks (int): number of blocks ResNetBlockFC layers
@@ -181,9 +181,9 @@ class PatchLocalPoolPointnet(nn.Module):
         unit_size (float): defined voxel unit size for local system
     '''
 
-    def __init__(self, c_dim=128, dim=3, hidden_dim=128, scatter_type='max', 
-                 unet=False, unet_kwargs=None, unet3d=False, unet3d_kwargs=None, 
-                 plane_resolution=None, grid_resolution=None, plane_type='xz', padding=0.1, n_blocks=5, 
+    def __init__(self, c_dim=128, dim=3, hidden_dim=128, scatter_type='max',
+                 unet=False, unet_kwargs=None, unet3d=False, unet3d_kwargs=None,
+                 plane_resolution=None, grid_resolution=None, plane_type='xz', padding=0.1, n_blocks=5,
                  local_coord=False, pos_encoding='linear', unit_size=0.1):
         super().__init__()
         self.c_dim = c_dim
@@ -221,14 +221,14 @@ class PatchLocalPoolPointnet(nn.Module):
             self.map2local = map2local(unit_size, pos_encoding=pos_encoding)
         else:
             self.map2local = None
-        
+
         if pos_encoding == 'sin_cos':
             self.fc_pos = nn.Linear(60, 2*hidden_dim)
         else:
             self.fc_pos = nn.Linear(dim, 2*hidden_dim)
 
     def generate_plane_features(self, index, c):
-        c = c.permute(0, 2, 1) 
+        c = c.permute(0, 2, 1)
         # scatter plane features from points
         if index.max() < self.reso_plane**2:
             fea_plane = c.new_zeros(c.size(0), self.c_dim, self.reso_plane**2)
@@ -237,7 +237,7 @@ class PatchLocalPoolPointnet(nn.Module):
             fea_plane = scatter_mean(c, index) # B x c_dim x reso^2
             if fea_plane.shape[-1] > self.reso_plane**2: # deal with outliers
                 fea_plane = fea_plane[:, :, :-1]
-        
+
         fea_plane = fea_plane.reshape(c.size(0), self.c_dim, self.reso_plane, self.reso_plane)
 
         # process the plane features with UNet
@@ -247,7 +247,7 @@ class PatchLocalPoolPointnet(nn.Module):
         return fea_plane
 
     def generate_grid_features(self, index, c):
-        # scatter grid features from points        
+        # scatter grid features from points
         c = c.permute(0, 2, 1)
         if index.max() < self.reso_grid**3:
             fea_grid = c.new_zeros(c.size(0), self.c_dim, self.reso_grid**3)
@@ -285,7 +285,7 @@ class PatchLocalPoolPointnet(nn.Module):
     def forward(self, inputs):
         p = inputs['points']
         index = inputs['index']
-    
+
         batch_size, T, D = p.size()
 
         if self.map2local:
